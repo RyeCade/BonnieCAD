@@ -295,6 +295,7 @@ class DocumentPainter extends CustomPainter {
     if (selected) {
       _paintGrip(canvas, s);
       _paintGrip(canvas, e);
+      _paintGrip(canvas, viewport.worldToScreen(wall.pointAt(opening.centerOffset)));
     }
   }
 
@@ -614,8 +615,15 @@ class DocumentPainter extends CustomPainter {
       colorValue: fx.colorValue,
       fallback: 0xFFF9A825,
     );
-    final s = fx.scale.clamp(0.5, 4.0);
-    final sw = (fx.strokeWidth ?? 1.75) * math.min(s, 2.0);
+    // World size in inches (base × scale); drawn in real world units so ¼′ snaps show.
+    final baseIn = switch (fx.type) {
+      WallFixtureType.light => 6.0,
+      _ => 4.0,
+    };
+    final sizeIn = (baseIn * fx.scale.clamp(0.25, 8.0)).clamp(3.0, 48.0);
+    final half = sizeIn / 2;
+    final rPx = viewport.worldToScreenLength(half).clamp(2.0, 400.0);
+    final sw = (fx.strokeWidth ?? 1.75).clamp(1.0, 6.0);
     final dir = wall.direction;
     final normal = Vec2(-dir.y, dir.x);
     final p = wall.pointAt(fx.offset);
@@ -628,15 +636,14 @@ class DocumentPainter extends CustomPainter {
       viewport.worldToScreenLength(dir.x),
       -viewport.worldToScreenLength(dir.y),
     );
-    // Normalize screen offsets to ~8px base × fixture scale
-    Offset norm(Offset o) {
+    Offset unit(Offset o) {
       final len = o.distance;
       if (len < 1e-6) return Offset.zero;
-      return o / len * (8 * s);
+      return o / len;
     }
 
-    final n = norm(nScreen);
-    final t = norm(tScreen);
+    final n = unit(nScreen) * rPx;
+    final t = unit(tScreen) * rPx;
     final paint = Paint()
       ..color = color
       ..strokeWidth = sw
@@ -648,10 +655,10 @@ class DocumentPainter extends CustomPainter {
         canvas.drawLine(c + t * 0.6 + n * 0.3, c + t * 0.6 - n * 0.3, paint);
         canvas.drawLine(c - t, c + t, paint);
       case WallFixtureType.switchFixture:
-        canvas.drawCircle(c, 5 * s, paint);
-        canvas.drawLine(c, c + n * 1.2, paint);
+        canvas.drawCircle(c, rPx * 0.55, paint);
+        canvas.drawLine(c, c + n * 1.1, paint);
       case WallFixtureType.light:
-        canvas.drawCircle(c, 6 * s, paint);
+        canvas.drawCircle(c, rPx * 0.65, paint);
         canvas.drawLine(c - t, c + t, paint);
         canvas.drawLine(c - n, c + n, paint);
     }

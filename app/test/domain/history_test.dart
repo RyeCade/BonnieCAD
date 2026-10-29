@@ -65,6 +65,40 @@ void main() {
     expect(doc.openings.first.offset, 20);
   });
 
+  test('undo redo opening slide along wall', () {
+    final doc = Document.empty();
+    final history = History();
+    doc.walls.add(
+      Wall(id: 'w1', a: const Vec2(0, 0), b: const Vec2(200, 0)),
+    );
+    doc.openings.add(
+      Opening(
+        id: 'd1',
+        type: OpeningType.door,
+        wallId: 'w1',
+        offset: 20,
+        width: 32,
+      ),
+    );
+
+    final cmd = SetOpeningGeometryCommand(
+      openingId: 'd1',
+      fromOffset: 20,
+      fromWidth: 32,
+      toOffset: 80,
+      toWidth: 32,
+    );
+    expect(cmd.label, 'Move opening');
+
+    history.push(cmd, doc);
+    expect(doc.openings.first.offset, 80);
+    expect(doc.openings.first.width, 32);
+
+    history.undo(doc);
+    expect(doc.openings.first.offset, 20);
+    expect(doc.openings.first.width, 32);
+  });
+
   test('undo redo opening width and swing', () {
     final doc = Document.empty();
     final history = History();

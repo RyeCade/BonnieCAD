@@ -64,6 +64,24 @@ echo Leave this window open while you use the app.
 echo Close it or press Ctrl+C to stop.
 echo.
 
+:: Upgrade Flutter when this is the Setup-managed SDK
+if /i "%FLUTTER_BAT%"=="%FLUTTER_HOME%\bin\flutter.bat" (
+  echo [..] Checking for Flutter updates...
+  call "%FLUTTER_BAT%" upgrade --verify-only >nul 2>&1
+  if errorlevel 1 (
+    echo [..] Updating Flutter ^(may take a few minutes^)...
+    call "%FLUTTER_BAT%" upgrade
+    if errorlevel 1 (
+      echo [!!] Flutter upgrade failed — continuing with current SDK.
+    ) else (
+      call "%FLUTTER_BAT%" precache --web
+    )
+  ) else (
+    echo [OK] Flutter is up to date
+  )
+)
+
+echo [..] Getting BonnieCAD packages...
 call "%FLUTTER_BAT%" pub get
 if errorlevel 1 (
   echo.

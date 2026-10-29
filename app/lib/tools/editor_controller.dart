@@ -73,6 +73,10 @@ class EditorController extends ChangeNotifier {
   bool isPanning = false;
   Offset? lastPanScreen;
 
+  /// Last thickness/color chosen for a wall; applied to the next drawn wall.
+  double defaultWallThickness = 4.5;
+  int? defaultWallColorValue;
+
   static const snapTolerancePx = 12.0;
   static const zoomFactor = 1.15;
 
@@ -179,8 +183,24 @@ class EditorController extends ChangeNotifier {
 
   void pushCommand(Command command) {
     history.push(command, document);
+    _rememberWallDefaults(command);
     dirty = true;
     notifyListeners();
+  }
+
+  void _rememberWallDefaults(Command command) {
+    if (command is SetWallThicknessCommand) {
+      defaultWallThickness = command.thickness;
+      return;
+    }
+    if (command is SetEntityStyleCommand &&
+        command.entityKind == StyleEntityKind.wall) {
+      if (command.clearColor) {
+        defaultWallColorValue = null;
+      } else if (command.colorValue != null) {
+        defaultWallColorValue = command.colorValue;
+      }
+    }
   }
 
   void undo() {
@@ -497,6 +517,9 @@ class EditorController extends ChangeNotifier {
       final ch = _keyToChar(key);
       if (ch != null) {
         lengthBuffer += ch;
+        if (activeTool is SelectTool) {
+          (activeTool as SelectTool).refreshLengthEntryStatus(this);
+        }
         refresh();
         return true;
       }
@@ -509,9 +532,20 @@ class EditorController extends ChangeNotifier {
         refresh();
         return true;
       }
+      if (lengthBuffer.isNotEmpty &&
+          activeTool is SelectTool &&
+          (activeTool as SelectTool).acceptsLengthEntry(this)) {
+        (activeTool as SelectTool).commitLength(this, lengthBuffer);
+        lengthBuffer = '';
+        refresh();
+        return true;
+      }
     }
     if (key == LogicalKeyboardKey.backspace && lengthBuffer.isNotEmpty) {
       lengthBuffer = lengthBuffer.substring(0, lengthBuffer.length - 1);
+      if (activeTool is SelectTool) {
+        (activeTool as SelectTool).refreshLengthEntryStatus(this);
+      }
       refresh();
       return true;
     }

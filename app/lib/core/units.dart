@@ -63,8 +63,12 @@ class Units {
         : formatMetric(inches);
   }
 
-  /// Parses user length input.
-  /// Accepts: `12`, `12.5`, `12'`, `12'6"`, `12' 6"`, `6"`, `1.5m`, `150cm`, `1500mm`
+  /// Parses user length input into inches.
+  ///
+  /// - Bare number = **decimal feet**: `10.5` → 10′6″, `.25` → 3″, `10` → 10′
+  /// - Explicit inches: `6"`, `12.5"`
+  /// - Feet-inches: `12'`, `12'6"`, `10' 6"`
+  /// - Metric: `1.5m`, `150cm`, `1500mm`
   static double? parseLength(String input) {
     final s = input.trim().toLowerCase().replaceAll(',', '');
     if (s.isEmpty) return null;
@@ -92,9 +96,17 @@ class Units {
       return sign * (feet.abs() * inchesPerFoot + inches);
     }
 
-    final inchOnly = RegExp(r'^(-?\d+(?:\.\d+)?)\s*"?$');
+    // Explicit inches (must include " so bare numbers stay feet).
+    final inchOnly = RegExp(r'''^(-?\d+(?:\.\d+)?)\s*"$''');
     final io = inchOnly.firstMatch(s);
     if (io != null) return double.parse(io.group(1)!);
+
+    // Bare number = decimal feet (also `.25`, `-.5`).
+    final feetOnly = RegExp(r'^(-?(?:\d+\.?\d*|\.\d+))$');
+    final fo = feetOnly.firstMatch(s);
+    if (fo != null) {
+      return double.parse(fo.group(1)!) * inchesPerFoot;
+    }
 
     return null;
   }

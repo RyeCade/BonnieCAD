@@ -3,10 +3,17 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Units.parseLength', () {
-    test('plain inches', () {
-      expect(Units.parseLength('12'), 12);
-      expect(Units.parseLength('12.5'), 12.5);
+    test('bare number is decimal feet', () {
+      expect(Units.parseLength('10'), 120);
+      expect(Units.parseLength('10.5'), 126);
+      expect(Units.parseLength('.25'), 3);
+      expect(Units.parseLength('0.25'), 3);
+      expect(Units.parseLength('12.5'), 150);
+    });
+
+    test('explicit inches', () {
       expect(Units.parseLength('6"'), 6);
+      expect(Units.parseLength('12.5"'), 12.5);
     });
 
     test('feet inches', () {

@@ -19,7 +19,7 @@ class WallTool extends EditorTool {
 
   @override
   String get statusHint =>
-      'Click to start a wall, click again to finish. Type length + Enter. Esc cancel.';
+      'Click start, click end. Shift+click jumps start (no wall). Type feet (10.5=10′6″) + Enter. Esc cancel.';
 
   @override
   void onActivate(EditorController c) {
@@ -44,7 +44,8 @@ class WallTool extends EditorTool {
         id: 'preview',
         a: _start!,
         b: e.point,
-        thickness: 4.5,
+        thickness: c.defaultWallThickness,
+        colorValue: c.defaultWallColorValue,
       );
       final len = _start!.distanceTo(e.point);
       final label = Units.format(len, c.document.displayUnits);
@@ -61,7 +62,21 @@ class WallTool extends EditorTool {
     if (!e.isPrimary) return;
     if (_start == null) {
       _start = e.point;
-      c.setStatus('Click end point (orthogonal on). Type length + Enter.');
+      c.setStatus(
+        'Click end (or Shift+click to jump start). Type feet (10.5=10′6″) + Enter.',
+      );
+      c.refresh();
+      return;
+    }
+
+    // Shift+click: abandon current segment and start a new wall here.
+    if (e.shift) {
+      _start = e.point;
+      c.previewWall = null;
+      c.lengthBuffer = '';
+      c.setStatus(
+        'New start. Click end (or Shift+click to jump again).',
+      );
       c.refresh();
       return;
     }
@@ -95,12 +110,18 @@ class WallTool extends EditorTool {
       id: c.document.idGen.next('w'),
       a: _start!,
       b: end,
-      thickness: 4.5,
+      thickness: c.defaultWallThickness,
       layerId: 'walls',
+      colorValue: c.defaultWallColorValue,
     );
     c.pushCommand(AddWallCommand(wall));
+    c.selectedIds
+      ..clear()
+      ..add(wall.id);
     _start = end;
     c.previewWall = null;
-    c.setStatus('Wall added. Click next point or Esc to stop.');
+    c.setStatus(
+      'Wall added. Click next point, Shift+click to jump start, or Esc.',
+    );
   }
 }

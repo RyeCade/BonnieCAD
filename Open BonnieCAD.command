@@ -5,7 +5,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "${ROOT}/app"
 
-export PATH="$HOME/flutter/bin:${HOME}/.local/share/bon-cad-tools/flutter/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+TOOLS_HOME="${HOME}/.local/share/bon-cad-tools"
+FLUTTER_HOME="${TOOLS_HOME}/flutter"
+export PATH="$HOME/flutter/bin:${FLUTTER_HOME}/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
 
 if [[ ! -f pubspec.yaml ]]; then
   osascript -e 'display alert "BonnieCAD folder incomplete" message "Could not find app/pubspec.yaml next to this launcher." as critical' >/dev/null 2>&1 || true
@@ -29,5 +31,19 @@ echo "Starting BonnieCAD in Chrome…"
 echo "(Leave this window open while you use the app. Close it or press Ctrl+C to stop.)"
 echo ""
 
+# Upgrade Flutter when this is the Setup-managed SDK (skip PATH-only installs).
+FLUTTER_BIN="$(command -v flutter)"
+if [[ "${FLUTTER_BIN:A}" == "${FLUTTER_HOME:A}/bin/flutter" ]]; then
+  echo "[..] Checking for Flutter updates…"
+  if ! flutter upgrade --verify-only >/dev/null 2>&1; then
+    echo "[..] Updating Flutter (may take a few minutes)…"
+    flutter upgrade || echo "[!!] Flutter upgrade failed — continuing with current SDK."
+    flutter precache --web || true
+  else
+    echo "[OK] Flutter is up to date"
+  fi
+fi
+
+echo "[..] Getting BonnieCAD packages…"
 flutter pub get
 exec flutter run -d chrome

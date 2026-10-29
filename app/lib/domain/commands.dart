@@ -214,7 +214,8 @@ class SetOpeningGeometryCommand implements Command {
   final double toWidth;
 
   @override
-  String get label => 'Resize opening';
+  String get label =>
+      (fromWidth - toWidth).abs() < 0.01 ? 'Move opening' : 'Resize opening';
 
   @override
   void execute(Document doc) {
@@ -724,7 +725,7 @@ class SetWallFixtureScaleCommand implements Command {
     final f = doc.wallFixtureById(fixtureId);
     if (f == null) return;
     _previous = f.scale;
-    f.scale = scale.clamp(0.5, 4.0);
+    f.scale = scale.clamp(0.25, 12.0);
   }
 
   @override

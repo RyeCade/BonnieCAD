@@ -10,6 +10,7 @@ import '../../domain/opening.dart';
 import '../../geometry/snap.dart';
 import '../../persistence/file_io.dart';
 import '../../tools/editor_controller.dart';
+import '../../tools/select_tool.dart';
 import '../../tools/tool.dart';
 import '../editor/editor_canvas.dart';
 
@@ -466,7 +467,7 @@ class _SidePanelState extends State<_SidePanel> {
               'W wall · D door · E window · M dim · B furniture · T text\n'
               'Angle: Free / 90 / 45° / 15° · floors in panel\n'
               'Scroll / pinch / + − zoom · Space+drag pan · F fit\n'
-              'Cmd/Ctrl+S save · Z undo · Y redo · Type wall length + Enter',
+              'Cmd/Ctrl+S save · Z undo · Y redo · Type feet (10.5=10′6″) + Enter',
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey.shade700,
@@ -517,6 +518,11 @@ class _SidePanelState extends State<_SidePanel> {
                       },
                     ),
                 ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Drag end grips; type feet (10.5=10′6″) + Enter',
+                style: Theme.of(context).textTheme.bodySmall,
               ),
               _StyleEditor(
                 controller: controller,
@@ -584,7 +590,7 @@ class _SidePanelState extends State<_SidePanel> {
               ],
               const SizedBox(height: 6),
               Text(
-                'Drag end grips on canvas to resize',
+                'Center grip slides along wall; ends resize. Type feet + Enter',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 4),
@@ -672,6 +678,11 @@ class _SidePanelState extends State<_SidePanel> {
                   ),
                 ],
               ),
+              const SizedBox(height: 6),
+              Text(
+                'Drag one axis; type feet (3=3′) + Enter for that axis only',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
               _StyleEditor(
                 controller: controller,
                 entityId: selectedFurn.id,
@@ -682,52 +693,34 @@ class _SidePanelState extends State<_SidePanel> {
             ] else if (selectedFixture != null) ...[
               Text('Electrical: ${selectedFixture.type.name}'),
               Text(
-                'Size: ${(selectedFixture.scale * 100).round()}%',
+                'Size: ${Units.format(SelectTool.fixtureWorldSize(selectedFixture), doc.displayUnits)}'
+                ' (${(selectedFixture.scale * 100).round()}%)',
               ),
               const SizedBox(height: 6),
-              Text('Size', style: Theme.of(context).textTheme.bodySmall),
+              Text('Size (¼′ steps)', style: Theme.of(context).textTheme.bodySmall),
               Wrap(
                 spacing: 6,
                 children: [
-                  for (final sc in [0.75, 1.0, 1.25, 1.5, 2.0])
+                  for (final inches in [3.0, 6.0, 9.0, 12.0, 15.0, 18.0])
                     ActionChip(
-                      label: Text('${(sc * 100).round()}%'),
+                      label: Text(Units.format(inches, doc.displayUnits)),
                       onPressed: () {
                         controller.pushCommand(
                           SetWallFixtureScaleCommand(
                             fixtureId: selectedFixture.id,
-                            scale: sc,
+                            scale: SelectTool.scaleFromWorldSize(
+                              selectedFixture.type,
+                              inches,
+                            ),
                           ),
                         );
                       },
                     ),
-                  ActionChip(
-                    label: const Text('+10%'),
-                    onPressed: () {
-                      controller.pushCommand(
-                        SetWallFixtureScaleCommand(
-                          fixtureId: selectedFixture.id,
-                          scale: selectedFixture.scale * 1.1,
-                        ),
-                      );
-                    },
-                  ),
-                  ActionChip(
-                    label: const Text('−10%'),
-                    onPressed: () {
-                      controller.pushCommand(
-                        SetWallFixtureScaleCommand(
-                          fixtureId: selectedFixture.id,
-                          scale: selectedFixture.scale * 0.9,
-                        ),
-                      );
-                    },
-                  ),
                 ],
               ),
               const SizedBox(height: 6),
               Text(
-                'Drag along wall to reposition',
+                'Drag along wall to move; drag off-wall to resize (snap ¼′)',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               _StyleEditor(
